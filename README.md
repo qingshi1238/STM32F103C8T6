@@ -20,7 +20,8 @@
 
 
 2026/07/12 led_key:C13 OutPut Open Drain High Level light up LED_Blue,A9 InPut High Level turns off LED_Blue
-    if(HAL_GPIO_ReadPin( GPIOA,GPIO_PIN_9) == GPIO_PIN_SET)
+
+    If(HAL_GPIO_ReadPin( GPIOA,GPIO_PIN_9) == GPIO_PIN_SET)
     {
       HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
     }
