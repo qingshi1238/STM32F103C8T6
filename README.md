@@ -78,7 +78,7 @@ OLED_HAL(4针脚I2C版本)：PIN_B8开漏输出低电平；PIN_B9开漏输出低
 
 4.在main.c中写代码
 
-     OLED_Init();		//OLED初始化
+    OLED_Init();		//OLED初始化
     /*OLED显示*/
     OLED_ShowChar(1, 1, 'A');				//1行1列显示字符A
     OLED_ShowString(1, 3, "HelloWorld!");	//1行3列显示字符串HelloWorld!
