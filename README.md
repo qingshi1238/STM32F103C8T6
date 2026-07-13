@@ -88,4 +88,39 @@ OLED_HAL(4针脚I2C版本)：PIN_B8开漏输出低电平；PIN_B9开漏输出低
     OLED_ShowBinNum(4, 1, 0xAA55, 16);	//4行1列显示二进制数字0xA5A5，长度为16
                                         //C语言无法直接写出二进制数字，故需要用十六进制表示
 
+2026/07/13
+sensorcount：PIN_B14外部中断模式，下降沿触发检测(高电平到低电平变化)
 
+main.h:
+
+#include "stm32f1xx_it.h"
+
+stm32f1xx_it.h:
+
+uint16_t GetCounter(void);  //函数声明
+
+stm32f1xx_it.c:
+
+uint16_t count; //定义全局变量
+if(__HAL_GPIO_EXTI_CLEAR_FLAG(GPIO_PIN_14))
+  {
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_14);
+  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14) == GPIO_PIN_SET) ////确认引脚电平，防止遮光板放下+1 拿开后也+1
+    {
+    count++;
+    }
+  }
+uint16_t GetCounter(void)
+{
+  return count;
+}
+
+main.c:
+
+  OLED_Init();		//OLED初始化
+  OLED_Clear();   //OLED清屏
+  OLED_ShowString(1, 1, "count:");	//1行1列显示字符串count:
+  while (1)
+  {
+    OLED_ShowNum(2, 1, GetCounter(), 5);			//2行1列显示十进制数字GetCount()，长度为5
+  }
