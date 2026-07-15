@@ -141,3 +141,23 @@ encoder：
         Count ++;
     }
     HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_1);
+
+2026/07/15
+pwm_oled:TIM2;Clock Source:Internal Clock;Channel1:PWM Generation CH1;PSC(预分频器):720-1;ARR(自动重装器):100-1;PWM MODE 1
+
+    HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_1);
+    while (1)
+    {
+         for(int i = 0;i<100;i++)
+        {
+            __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_1,i);
+            HAL_Delay(10);
+        }
+        for(int i = 0;i<100;i++)
+        {
+             __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_1,100-i);
+            HAL_Delay(10);
+        }
+    }
+
+servo:
