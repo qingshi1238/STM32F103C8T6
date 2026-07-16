@@ -78,6 +78,7 @@ OLED_HAL(4针脚I2C版本)：PIN_B8开漏输出低电平；PIN_B9开漏输出低
 
 4.在main.c中写代码
 
+    #include "OLED.h"
     OLED_Init();		//OLED初始化
     /*OLED显示*/
     OLED_ShowChar(1, 1, 'A');				//1行1列显示字符A
@@ -143,6 +144,7 @@ encoder：
     HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_1);
 
 2026/07/15
+PWM mode 1向上计数模式下：计数器数值 CNT < CCR（Pulse 值）时，引脚输出有效电平；CNT ≥ CCR 时输出无效电平
 pwm_oled:TIM2;Clock Source:Internal Clock;Channel1:PWM Generation CH1;PSC(预分频器):720-1;ARR(自动重装器):100-1;PWM MODE 1
 
     HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_1);
@@ -150,14 +152,40 @@ pwm_oled:TIM2;Clock Source:Internal Clock;Channel1:PWM Generation CH1;PSC(预分
     {
          for(int i = 0;i<100;i++)
         {
-            __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_1,i);
+            __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_1,i);  //CCR值由0增加到100
             HAL_Delay(10);
         }
         for(int i = 0;i<100;i++)
         {
-             __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_1,100-i);
+             __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_1,100-i); //CCR值由100减小到0
             HAL_Delay(10);
         }
     }
 
-servo:
+servo:TIM2;Clock Source:Internal Clock;Channel2:PWM Generation CH2;PSC(预分频器):720-1;ARR(自动重装器):20000-1;PWM MODE 1;CCR:500
+
+    uint16_t Angle;
+    OLED_Init();
+    OLED_Clear();
+    OLED_ShowString(1,1,"Angle:");
+    HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_2);
+    while (1)
+    {
+        if(HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_1) == GPIO_PIN_RESET)
+        {
+            //按键消抖
+            HAL_Delay(20);
+            while (HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_1) == GPIO_PIN_RESET);
+            HAL_Delay(20);
+            Angle += 30;
+            if (Angle > 180)
+            {
+              Angle = 0;
+            }
+        }
+        __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,Angle * (htim2.Init.Period + 1) / 1800  + (htim2.Init.Period + 1) / 40 );
+        OLED_ShowNum(2,1,Angle,3);
+    }
+
+2026/07/16
+pwm_motor:
