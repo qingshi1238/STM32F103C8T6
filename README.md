@@ -162,7 +162,7 @@ pwm_oled:TIM2;Clock Source:Internal Clock;Channel1:PWM Generation CH1;PSC(预分
         }
     }
 
-servo:TIM2;Clock Source:Internal Clock;Channel2:PWM Generation CH2;PSC(预分频器):720-1;ARR(自动重装器):20000-1;PWM MODE 1;CCR:500
+servo:TIM2;Clock Source:Internal Clock;Channel2:PWM Generation CH2;PSC(预分频器):720-1;ARR(自动重装器):20000-1;PWM MODE 1;CCR(初始捕获/比较器的值):500
 
     uint16_t Angle;
     OLED_Init();
@@ -183,9 +183,46 @@ servo:TIM2;Clock Source:Internal Clock;Channel2:PWM Generation CH2;PSC(预分频
               Angle = 0;
             }
         }
-        __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,Angle * (htim2.Init.Period + 1) / 1800  + (htim2.Init.Period + 1) / 40 );
+        __HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,Angle * (htim2.Init.Period + 1) / 1800  + (htim2.Init.Period + 1) / 40 );    //动态调整CCR的值
         OLED_ShowNum(2,1,Angle,3);
     }
 
 2026/07/16
-pwm_motor:
+pwm_motor:TIM2;Clock Source:Internal Clock;Channel3:PWM Generation CH3;PSC(预分频器):72-1;ARR(自动重装器):100-1;PWM MODE 1;CCR(STM32CubeMX里设置的初始CCR的值):20
+
+    int16_t Speed = 0;
+    void SetSpeed(int8_t Speed)
+    {
+        if(Speed >= 0)
+        {
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+            __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, Speed);    //电机正转
+        }
+        else 
+        {
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+            __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, -Speed);   //电机反转
+        }
+    }   
+    OLED_Init();
+    HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_3);
+    OLED_Clear();
+    OLED_ShowString(1,1,"Speed:");
+    while (1)
+    {
+        if(HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_1) == GPIO_PIN_RESET)
+        {
+            HAL_Delay(20);
+            while(HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_1) == GPIO_PIN_RESET);
+            HAL_Delay(20);
+            Speed += 1;
+            if(Speed > 2)
+            {
+                Speed = -2;
+            }
+        }
+        SetSpeed(Speed * 50);
+        OLED_ShowSignedNum(2,1,Speed*50,3);
+    }
