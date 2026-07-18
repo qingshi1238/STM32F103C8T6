@@ -226,3 +226,16 @@ pwm_motor:TIM2;Clock Source:Internal Clock;Channel3:PWM Generation CH3;PSC(é¢„åˆ
         SetSpeed(Speed * 50);
         OLED_ShowSignedNum(2,1,Speed*50,3);
     }
+
+    2026/07/17
+    freq_detect:
+
+    
+
+
+
+
+
+    2026/07/18
+    pwmi_duty:
+    
