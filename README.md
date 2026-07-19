@@ -165,6 +165,7 @@ pwm_oled:TIM2;Clock Source:Internal Clock;Channel1:PWM Generation CH1;PSC(预分
 servo:TIM2;Clock Source:Internal Clock;Channel2:PWM Generation CH2;PSC(预分频器):720-1;ARR(自动重装器):20000-1;PWM MODE 1;CCR(初始捕获/比较器的值):500
 
     uint16_t Angle;
+    
     OLED_Init();
     OLED_Clear();
     OLED_ShowString(1,1,"Angle:");
@@ -205,7 +206,8 @@ pwm_motor:TIM2;Clock Source:Internal Clock;Channel3:PWM Generation CH3;PSC(预�
             HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
             __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, -Speed);   //电机反转
         }
-    }   
+    }
+
     OLED_Init();
     HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_3);
     OLED_Clear();
@@ -227,8 +229,28 @@ pwm_motor:TIM2;Clock Source:Internal Clock;Channel3:PWM Generation CH3;PSC(预�
         OLED_ShowSignedNum(2,1,Speed*50,3);
     }
 
-    2026/07/17
-    freq_detect:
+2026/07/17
+freq_detect:TIM2_CH1产生PWM信号:TIM3:Reset Mode,TI1FP1,Internal Clock,Channel1:Input Capture direct mode,开启NVIC
+
+    int32_t freq;
+    void (HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim))
+    {
+        if(htim -> Instance == TIM3)
+        {
+            uint32_t capture = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1) +1;   //HAL_TIM_ReadCapturedValue读CCR1的值
+            freq = 1000000 / capture;
+        }
+    }
+
+    OLED_Init();
+    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+    HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
+    OLED_Clear();
+    OLED_ShowString(1, 1, "Freq:000000Hz");
+    while (1)
+    {
+        OLED_ShowNum(1, 6, freq, 5);
+    }
 
     
 
@@ -236,6 +258,66 @@ pwm_motor:TIM2;Clock Source:Internal Clock;Channel3:PWM Generation CH3;PSC(预�
 
 
 
-    2026/07/18
-    pwmi_duty:
+2026/07/18
+pwmi_duty:TIM2_CH1产生PWM信号;TIM3:Reset Mode,TI1FP1,Internal Clock,Channel1:Input Capture direct mode通道1直通输入捕获(引脚电平跳变时，硬件将当前 CNT 锁存存入 CCR1 捕获寄存器;同时该信号输出 TI1FP1，触发从模式复位，清零CNT),Channel2:Input Capture indirect mode通道2间接输入捕获(通道2复用通道1的滤波信号 TI1FP1 作为捕获输入，不用外接引脚;同一个输入信号既给CH1直通捕获,又给CH2间接捕获;可分别配置两个通道捕获边沿,一次输入信号就能同时记录上升沿、下降沿时刻,实现脉宽测量。),开启NVIC,PSC:72-1,Channel1:Rising Edge(direct),Channel2:Falling Edge(indirect)
+
+    int32_t freq;
+    uint32_t duty;
+    uint32_t capture;
+    void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+    {
+        if(htim -> Instance == TIM3)
+        {
+            //上升沿出发中断
+            if(htim -> Channel == HAL_TIM_ACTIVE_CHANNEL_1)
+            {
+                capture = HAL_TIM_ReadCapturedValue(htim,TIM_CHANNEL_1) + 1;    //HAL_TIM_ReadCapturedValue读CCR1的值
+                freq = 1000000 / capture;
+            }
+            //下降沿触发中断
+            else if(htim -> Channel == HAL_TIM_ACTIVE_CHANNEL_2)
+            {
+                uint32_t capture2 = HAL_TIM_ReadCapturedValue(htim,TIM_CHANNEL_2) + 1;
+                duty = capture2 * 100 / capture;
+            }
+        }
+    }
+
+    OLED_Init();
+    HAL_TIM_PWM_Start(&htim2,TIM_CHANNEL_1);
+    HAL_TIM_IC_Start_IT(&htim3,TIM_CHANNEL_1);  //打开输入捕获周期
+    HAL_TIM_IC_Start_IT(&htim3,TIM_CHANNEL_2);  //打开输入捕获占空比
+    OLED_Clear();
+    OLED_ShowString(1,1,"Freq:000000HZ");
+    OLED_ShowString(2,1,"Duty:000%");
+    while (1)
+    {
+        OLED_ShowSignedNum(1,6,freq,5);
+        OLED_ShowSignedNum(2,6,duty,2);
+    }
+
+
+
+
+
+2026/07/19
+encoder_detect:TIM3;Encoder Mode;Encoder Mode TI1 and TI2
+
+    int16_t GetEncoderSpeed()
+    {
+        int16_t tmp;
+        tmp = __HAL_TIM_GET_COUNTER(&htim3); //读取CNT计数器的值
+        __HAL_TIM_SET_COUNTER(&htim3, 0);   //CNT计数器的值清零
+        return tmp;
+    }
+
+    OLED_Init();
+    HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
+    OLED_Clear();
+    OLED_ShowString(1, 1, "SPD:");
+    while (1)
+    {
+        OLED_ShowSignedNum(2, 5, GetEncoderSpeed(), 5);
+        HAL_Delay(1000);
+    }
     
