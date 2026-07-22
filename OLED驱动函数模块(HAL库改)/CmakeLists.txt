@@ -1,3 +1,4 @@
+# Add user defined include paths
 ${CMAKE_CURRENT_SOURCE_DIR}/Hardware/OLED/Inc
-
+# Add user sources here
 ${CMAKE_CURRENT_SOURCE_DIR}/Hardware/OLED/Src/OLED.c

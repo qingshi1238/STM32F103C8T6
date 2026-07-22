@@ -321,3 +321,93 @@ encoder_detect:TIM3;Encoder Mode;Encoder Mode TI1 and TI2
         HAL_Delay(1000);
     }
     
+2026/07/22
+adc:ADC1 Mode:IN0;ADC PSC 12Mhz
+
+    OLED_Init();
+    OLED_Clear();
+    HAL_ADCEx_Calibration_Start(&hadc1);    //ADC1校准
+    OLED_ShowString(1, 1, "Value:");
+    OLED_ShowString(2, 1, "Voltage:0.00V");
+    while (1)
+    {
+        HAL_ADC_Start(&hadc1);  //开启ADC
+        HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY); //等待转换完成
+        value = HAL_ADC_GetValue(&hadc1); //获取结果
+        voltage = (float)value/4095.0*3.3;
+        OLED_ShowNum(1, 10, value, 4);
+        OLED_ShowNum(2, 9, (uint32_t)voltage, 1);
+        OLED_ShowNum(2, 11, (uint16_t)(voltage*100)%100, 2);
+        HAL_Delay(1000);
+    }
+
+multi_adc:ADC1 Mode:IN0,IN1,IN2,IN3;ADC Settings:Scan Conversion Mode Enabled,Discontinuous Conversion Mode Enabled;ADC_Regular_ConversionMode:Numble of Conversion 4,Rank1~4:Channel0~3
+
+    uint16_t values[4] = {0}; //用于存放ADC数据
+    uint8_t i;
+
+    OLED_Init();
+    OLED_Clear();
+    HAL_ADCEx_Calibration_Start(&hadc1);
+    OLED_ShowString(1, 1, "V1:");
+    OLED_ShowString(2, 1, "V2:");
+    OLED_ShowString(3, 1, "V3:");
+    OLED_ShowString(4, 1, "V4:");
+    while (1)
+    {
+        for (i = 0; i < 4; i++)
+        {
+            HAL_ADC_Start(&hadc1);
+            if(HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY) == HAL_OK)
+            {
+                values[i] = HAL_ADC_GetValue(&hadc1);
+            }    
+        }
+        OLED_ShowNum(1, 5, values[0], 4);
+        OLED_ShowNum(2, 5, values[1], 4);
+        OLED_ShowNum(3, 5, values[2], 4);
+        OLED_ShowNum(4, 5, values[3], 4);
+        HAL_Delay(1000);
+    }    
+
+dma_m2m:DMA1 default Settings
+
+    OLED_Init();
+    OLED_Clear();
+    uint8_t DataA[] = {0x01,0x02,0x03,0x04};
+    uint8_t DataB[] = {0,0,0,0};
+    while (1)
+    {
+        HAL_DMA_Start(&hdma_memtomem_dma1_channel1, (uint32_t)&DataA, (uint32_t)&DataB, 4); //启动DMA
+        HAL_DMA_PollForTransfer(&hdma_memtomem_dma1_channel1, HAL_DMA_FULL_TRANSFER, HAL_MAX_DELAY);  //等待传输完成
+        for (uint16_t i = 0; i<4; i++)
+        {
+            DataA[i]++;
+        }
+        for (uint16_t i = 0; i<4; i++)
+        {
+            OLED_ShowHexNum(1, 1+3*i, DataA[i], 2);
+        }
+        for (uint16_t j = 0; j<4; j++)
+        {
+            OLED_ShowHexNum(3, 1+3*j, DataA[j], 2);
+        }
+        HAL_Delay(50);
+    }
+
+dma_adc:ADC1 Mode:IN0,IN1,IN2,IN3;ADC Settings:Scan Conversion Mode Enabled,Continuous Conversion Mode Enabled;ADC_Regular_ConversionMode:Numble of Conversion 4,Rank1~4:Channel0~3,55.5Cycles(提高采样精度);ADC DMA Settings:Circular,Other default
+
+    uint16_t value[4];
+
+    OLED_Init();
+    HAL_ADCEx_Calibration_Start(&hadc1);
+    OLED_Clear();
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)value, 4);
+    while (1)
+    {
+        OLED_ShowNum(1, 1, value[0], 5);
+        OLED_ShowNum(2, 1, value[1], 5);
+        OLED_ShowNum(3, 1, value[2], 5);
+        OLED_ShowNum(4, 1, value[3], 5);
+        HAL_Delay(1000);
+    }
